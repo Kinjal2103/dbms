@@ -1,7 +1,7 @@
 const express = require('express');
 const multer = require('multer');
 const path = require('path');
-const { getRecentPosts, createPost, uploadMedia } = require('../controllers/postController');
+const { getRecentPosts, createPost, uploadMedia, deletePost } = require('../controllers/postController');
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
@@ -23,5 +23,6 @@ const upload = multer({
 router.get('/recent', protect, getRecentPosts);
 router.post('/', protect, createPost);
 router.post('/upload-media', protect, upload.single('media'), uploadMedia);
+router.delete('/:id', protect, deletePost);
 
 module.exports = router;
