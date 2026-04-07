@@ -1350,30 +1350,97 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
 };
 
 const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void, user: User | null, onLogout: () => void }) => {
+  const [analyticsData, setAnalyticsData] = useState<any>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [chartTab, setChartTab] = useState<'Engagement' | 'Reach' | 'Conversions'>('Engagement');
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const token = getToken();
+        if (!token) {
+          onLogout();
+          return;
+        }
+        const res = await fetch(`${BASE_URL}/analytics/overview`, {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        if (res.status === 401) {
+          onLogout();
+          return;
+        }
+        if (res.ok) {
+          const data = await res.json();
+          setAnalyticsData(data);
+        }
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    fetchData();
+  }, [onLogout]);
+
+  const handleExport = () => {
+    if (!analyticsData) return;
+    const blob = new Blob([JSON.stringify(analyticsData, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `socialops_analytics_${new Date().getTime()}.json`;
+    a.click();
+    URL.revokeObjectURL(url);
+    window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Report exported successfully' }));
+  };
+
+  const handleShare = async () => {
+    try {
+      await navigator.clipboard.writeText(`https://socialops.app/report/${user?.id || 'demo'}`);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Report link copied to clipboard' }));
+    } catch (err) {
+      console.error('Failed to copy', err);
+    }
+  };
+
+  const formatNumber = (num: number) => {
+    if (num >= 1000000) return (num / 1000000).toFixed(1) + 'M';
+    if (num >= 1000) return (num / 1000).toFixed(1) + 'K';
+    return num.toString();
+  };
+
   const containerVariants = {
     hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
+    visible: { opacity: 1, transition: { staggerChildren: 0.1 } }
   };
 
   const itemVariants = {
     hidden: { y: 20, opacity: 0 },
-    visible: {
-      y: 0,
-      opacity: 1,
-      transition: {
-        type: "spring",
-        stiffness: 100
-      }
-    }
+    visible: { y: 0, opacity: 1, transition: { type: "spring", stiffness: 100 } }
   };
 
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-background">
+        <Navbar currentView="analytics" setView={setView} user={user} onLogout={onLogout} />
+        <main className="pt-32 pb-20 px-8 max-w-7xl mx-auto flex flex-col gap-8">
+           <div className="animate-pulse h-20 bg-surface-container rounded-2xl w-1/3 mb-8"></div>
+           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
+             {[1,2,3,4].map(i => <div key={i} className="animate-pulse h-32 bg-surface-container rounded-2xl"></div>)}
+           </div>
+           <div className="animate-pulse h-96 bg-surface-container rounded-2xl"></div>
+        </main>
+      </div>
+    );
+  }
+
+  const kpis = analyticsData?.kpis || {};
+  const networkDistribution = analyticsData?.networkDistribution || [];
+  const audienceDna = analyticsData?.audienceDna || { topAgeGroup: '', regions: [] };
+  const currentChartData = analyticsData?.chartData?.[chartTab] || [];
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background relative">
       <Navbar currentView="analytics" setView={setView} user={user} onLogout={onLogout} />
       <main className="pt-32 pb-20 px-8 max-w-7xl mx-auto">
         <motion.header 
@@ -1386,8 +1453,8 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
             <h1 className="text-5xl font-extrabold tracking-tight">Analytics Overview</h1>
           </div>
           <div className="flex items-center gap-4">
-            <Button variant="secondary">Export</Button>
-            <Button>Share Report</Button>
+            <Button variant="secondary" onClick={handleExport}>Export</Button>
+            <Button onClick={handleShare}>Share Report</Button>
           </div>
         </motion.header>
 
@@ -1398,20 +1465,20 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
           className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12"
         >
           {[
-            { label: 'Followers', value: '1.24M', change: '+12%', trend: 'up' },
-            { label: 'Impressions', value: '24.5M', change: '+42%', trend: 'up' },
-            { label: 'Engagement Rate', value: '4.82%', change: '-2%', trend: 'down' },
-            { label: 'Post Frequency', value: '12.4', change: '+8%', trend: 'up' },
+            { label: 'Followers', value: formatNumber(kpis.followers?.total || 0), change: kpis.followers?.change || 0, trend: (kpis.followers?.change || 0) >= 0 ? 'up' : 'down' },
+            { label: 'Impressions', value: formatNumber(kpis.impressions?.total || 0), change: kpis.impressions?.change || 0, trend: (kpis.impressions?.change || 0) >= 0 ? 'up' : 'down' },
+            { label: 'Engagement Rate', value: `${kpis.engagementRate?.total || 0}%`, change: kpis.engagementRate?.change || 0, trend: (kpis.engagementRate?.change || 0) >= 0 ? 'up' : 'down' },
+            { label: 'Post Frequency', value: kpis.postFrequency?.total || 0, change: kpis.postFrequency?.change || 0, trend: (kpis.postFrequency?.change || 0) >= 0 ? 'up' : 'down' },
           ].map(stat => (
             <motion.div key={stat.label} variants={itemVariants}>
-              <Card className="p-8 hover:shadow-2xl transition-shadow duration-500">
+              <Card className="p-8 hover:shadow-2xl transition-shadow duration-500 h-full">
                 <div className="flex justify-between items-start mb-4">
                   <span className="text-on-surface-variant/50 font-bold text-[10px] uppercase tracking-widest">{stat.label}</span>
                   <div className={cn(
-                    "px-2 py-0.5 rounded-full text-[10px] font-bold",
+                    "px-2 py-0.5 rounded-full text-[10px] font-bold flex items-center gap-1",
                     stat.trend === 'up' ? "bg-teal-50 text-teal-600" : "bg-tertiary/10 text-tertiary"
                   )}>
-                    {stat.change}
+                    {stat.trend === 'up' ? '+' : ''}{stat.change}%
                   </div>
                 </div>
                 <div className="text-3xl font-extrabold">{stat.value}</div>
@@ -1433,10 +1500,13 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
                 <p className="text-on-surface-variant/50 text-xs">Multi-metric performance over time</p>
               </div>
               <div className="flex bg-surface-container p-1 rounded-xl">
-                {['Engagement', 'Reach', 'Conversions'].map(tab => (
-                  <button key={tab} className={cn(
+                {(['Engagement', 'Reach', 'Conversions'] as const).map(tab => (
+                  <button 
+                    key={tab} 
+                    onClick={() => setChartTab(tab)}
+                    className={cn(
                     "px-4 py-2 rounded-lg text-xs font-bold transition-all",
-                    tab === 'Engagement' ? "bg-white shadow-sm text-primary" : "text-on-surface-variant hover:text-primary"
+                    chartTab === tab ? "bg-white shadow-sm text-primary" : "text-on-surface-variant hover:text-primary"
                   )}>
                     {tab}
                   </button>
@@ -1444,37 +1514,59 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
               </div>
             </div>
             <div className="h-[400px] w-full relative">
-              <svg className="w-full h-full" viewBox="0 0 1000 400">
-                <motion.path 
-                  initial={{ pathLength: 0 }}
-                  whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 2, ease: "easeInOut" }}
-                  d="M0 350 Q 250 380, 500 300 T 1000 100" 
-                  fill="none" 
-                  stroke="#6750a4" 
-                  strokeWidth="6" 
-                  strokeLinecap="round"
-                  className="opacity-80"
-                />
-                <motion.path 
-                  initial={{ pathLength: 0 }}
-                  whileInView={{ pathLength: 1 }}
-                  viewport={{ once: true }}
-                  transition={{ duration: 2, ease: "easeInOut", delay: 0.5 }}
-                  d="M0 300 Q 250 250, 500 280 T 1000 350" 
-                  fill="none" 
-                  stroke="#a23256" 
-                  strokeWidth="4" 
-                  strokeDasharray="12 8"
-                  className="opacity-40"
-                />
+              <svg className="w-full h-full" viewBox="0 0 1000 400" preserveAspectRatio="none">
+                {/* Dynamically drawing line chart mapped across 4 dates across 0-1000 width scale */}
+                {currentChartData.length > 0 && (() => {
+                  const maxVal = Math.max(...currentChartData.map((d: any) => d.value));
+                  const scaledPoints = currentChartData.map((d: any, i: number) => {
+                    const x = (i / (currentChartData.length - 1)) * 1000;
+                    const y = 350 - ((d.value / maxVal) * 300); // 350 bottom padding
+                    return `${x},${y}`;
+                  }).join(' L ');
+                  
+                  return (
+                    <motion.path 
+                      key={chartTab}
+                      initial={{ pathLength: 0, opacity: 0 }}
+                      animate={{ pathLength: 1, opacity: 0.8 }}
+                      transition={{ duration: 1.5, ease: "easeOut" }}
+                      d={`M ${scaledPoints}`} 
+                      fill="none" 
+                      stroke="#6750a4" 
+                      strokeWidth="6" 
+                      strokeLinecap="round"
+                    />
+                  );
+                })()}
+
               </svg>
+              {currentChartData.length > 0 && (
+                <div className="absolute top-0 left-0 w-full h-full pointer-events-none">
+                  {currentChartData.map((d: any, i: number) => {
+                     const maxVal = Math.max(...currentChartData.map((v: any) => v.value));
+                     const x = (i / (currentChartData.length - 1)) * 100;
+                     const y = 350 - ((d.value / maxVal) * 300);
+                     return (
+                        <motion.div 
+                          key={i}
+                          initial={{ opacity: 0, scale: 0 }}
+                          animate={{ opacity: 1, scale: 1 }}
+                          transition={{ delay: 1 + (i * 0.1) }}
+                          className="absolute w-4 h-4 rounded-full bg-white border-4 border-primary shadow-lg pointer-events-auto shadow-black/20 group hover:scale-150 hover:z-10 transition-transform cursor-pointer"
+                          style={{ left: `calc(${x}% - 8px)`, top: `${(y/400)*100}%` }}
+                        >
+                           <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-on-surface text-white text-[10px] font-bold px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity">
+                             {formatNumber(d.value)}
+                           </div>
+                        </motion.div>
+                     );
+                  })}
+                </div>
+              )}
               <div className="absolute bottom-0 w-full flex justify-between text-[10px] font-bold text-on-surface-variant/50 uppercase tracking-widest">
-                <span>Week 1</span>
-                <span>Week 2</span>
-                <span>Week 3</span>
-                <span>Week 4</span>
+                {currentChartData.map((d: any, i: number) => (
+                  <span key={i}>{d.date}</span>
+                ))}
               </div>
             </div>
           </Card>
@@ -1490,37 +1582,33 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
             <Card className="p-10 h-full">
               <h3 className="text-xl font-bold mb-8">Network Distribution</h3>
               <div className="space-y-10">
-                {[
-                  { label: 'Instagram', value: 42, color: 'bg-primary' },
-                  { label: 'TikTok', value: 28, color: 'bg-secondary' },
-                  { label: 'LinkedIn', value: 18, color: 'bg-tertiary' },
-                ].map((item, idx) => (
-                  <div key={item.label}>
+                {networkDistribution.map((item: any, idx: number) => (
+                  <div key={item.platform}>
                     <div className="flex justify-between items-center mb-4">
-                      <span className="text-sm font-bold uppercase tracking-widest text-on-surface-variant/50">{item.label}</span>
-                      <span className="text-sm font-bold">{item.value}% Total</span>
+                      <span className="text-sm font-bold uppercase tracking-widest text-on-surface-variant/50">{item.platform}</span>
+                      <span className="text-sm font-bold">{item.percentage}% Total</span>
                     </div>
                     <div className="w-full h-6 bg-surface-container rounded-full overflow-hidden flex">
                       <motion.div 
                         initial={{ width: 0 }}
-                        whileInView={{ width: `${item.value}%` }}
+                        whileInView={{ width: `${item.percentage}%` }}
                         viewport={{ once: true }}
                         transition={{ duration: 1, delay: 0.8 + (idx * 0.2) }}
-                        className={cn("h-full", item.color)} 
+                        className={cn("h-full", item.color || "bg-primary")} 
                       />
                       <motion.div 
                         initial={{ width: 0 }}
-                        whileInView={{ width: `${item.value * 0.5}%` }}
+                        whileInView={{ width: `${item.percentage * 0.5}%` }}
                         viewport={{ once: true }}
                         transition={{ duration: 1, delay: 1 + (idx * 0.2) }}
-                        className={cn("h-full opacity-60", item.color)} 
+                        className={cn("h-full opacity-60", item.color || "bg-primary")} 
                       />
                       <motion.div 
                         initial={{ width: 0 }}
-                        whileInView={{ width: `${item.value * 0.3}%` }}
+                        whileInView={{ width: `${item.percentage * 0.3}%` }}
                         viewport={{ once: true }}
                         transition={{ duration: 1, delay: 1.2 + (idx * 0.2) }}
-                        className={cn("h-full opacity-30", item.color)} 
+                        className={cn("h-full opacity-30", item.color || "bg-primary")} 
                       />
                     </div>
                   </div>
@@ -1561,29 +1649,24 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
                       transition={{ type: "spring", delay: 1.5 }}
                       className="text-3xl font-extrabold"
                     >
-                      18-24
+                      {audienceDna.topAgeGroup}
                     </motion.span>
                     <span className="text-[8px] font-bold uppercase tracking-widest text-on-surface-variant/50">Primary Age</span>
                   </div>
                 </div>
                 <div className="flex-grow space-y-6 w-full">
                   <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 mb-4">Top Regions</p>
-                  {[
-                    { label: 'United States', value: 42 },
-                    { label: 'United Kingdom', value: 15 },
-                    { label: 'Brazil', value: 12 },
-                    { label: 'India', value: 10 },
-                  ].map((region, idx) => (
+                  {audienceDna.regions.map((region: any, idx: number) => (
                     <motion.div 
-                      key={region.label} 
+                      key={region.name} 
                       initial={{ opacity: 0, x: 10 }}
                       whileInView={{ opacity: 1, x: 0 }}
                       viewport={{ once: true }}
                       transition={{ delay: 1.2 + (idx * 0.1) }}
                       className="flex items-center justify-between"
                     >
-                      <span className="text-sm font-bold">{region.label}</span>
-                      <span className="text-sm font-bold text-on-surface-variant/50">{region.value}%</span>
+                      <span className="text-sm font-bold">{region.name}</span>
+                      <span className="text-sm font-bold text-on-surface-variant/50">{region.percentage}%</span>
                     </motion.div>
                   ))}
                 </div>
