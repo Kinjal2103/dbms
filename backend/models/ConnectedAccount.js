@@ -8,18 +8,24 @@ const connectedAccountSchema = new mongoose.Schema({
   },
   platform: {
     type: String,
-    enum: ['instagram', 'twitter', 'linkedin', 'tiktok'],
+    enum: ['twitter', 'youtube', 'reddit'],
     required: true
   },
   username: {
     type: String,
     required: true
   },
+  profileImageUrl: {
+    type: String
+  },
   accessToken: {
     type: String
   },
   refreshToken: {
     type: String
+  },
+  expiresAt: {
+    type: Date
   },
   connectedAt: {
     type: Date,

@@ -11,27 +11,7 @@ exports.getConnectedAccounts = async (req, res) => {
 };
 
 exports.connectAccount = async (req, res) => {
-  try {
-    const { platform } = req.params;
-    
-    // Simulate connection flow mock
-    const newAccount = await ConnectedAccount.findOneAndUpdate(
-      { userId: req.user._id, platform },
-      { 
-        userId: req.user._id, 
-        platform, 
-        username: `@socialops_${platform}_user`,
-        accessToken: 'mock_access_token',
-        connectedAt: new Date()
-      },
-      { upsert: true, new: true }
-    );
-    
-    res.json({ success: true, account: { platform: newAccount.platform, username: newAccount.username } });
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ message: 'Server error' });
-  }
+  res.status(400).json({ message: 'Please use the /api/auth/:platform/url OAuth flow instead.' });
 };
 
 exports.disconnectAccount = async (req, res) => {

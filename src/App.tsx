@@ -37,7 +37,8 @@ import {
   Loader2,
   Send,
   Smartphone,
-  Laptop
+  Laptop,
+  Youtube
 } from 'lucide-react';
 import { Card, Button, Input } from '@/src/components/ui-base';
 import { cn } from '@/src/lib/utils';
@@ -2019,18 +2020,19 @@ const IntegrationsView = ({ setView, user, onLogout }: { setView: (v: View) => v
     setActiveProcess(platform);
     try {
       const token = getToken();
-      const res = await fetch(`${BASE_URL}/integrations/${platform}/connect`, {
-        method: 'POST',
+      const res = await fetch(`${BASE_URL}/authIntegrations/${platform}/url`, {
+        method: 'GET',
         headers: { Authorization: `Bearer ${token}` }
       });
       if (res.ok) {
         const data = await res.json();
-        setConnectedApps(prev => [...prev.filter(a => a.platform !== platform), data.account]);
-        window.dispatchEvent(new CustomEvent('app-toast', { detail: `Successfully connected ${platform}!` }));
+        window.location.href = data.url;
+      } else {
+        console.error('Failed to get auth url');
+        setActiveProcess(null);
       }
     } catch (err) {
       console.error(err);
-    } finally {
       setActiveProcess(null);
     }
   };
@@ -2055,10 +2057,9 @@ const IntegrationsView = ({ setView, user, onLogout }: { setView: (v: View) => v
   };
 
   const platforms = [
-    { id: 'instagram', name: 'Instagram', icon: <Instagram className="w-8 h-8" />, color: 'text-pink-600 bg-pink-100' },
     { id: 'twitter', name: 'Twitter/X', icon: <Twitter className="w-8 h-8" />, color: 'text-blue-500 bg-blue-100' },
-    { id: 'linkedin', name: 'LinkedIn', icon: <Linkedin className="w-8 h-8" />, color: 'text-blue-700 bg-blue-100' },
-    { id: 'tiktok', name: 'TikTok', icon: <Video className="w-8 h-8" />, color: 'text-black bg-gray-200' },
+    { id: 'youtube', name: 'YouTube', icon: <Youtube className="w-8 h-8" />, color: 'text-red-600 bg-red-100' },
+    { id: 'reddit', name: 'Reddit', icon: <MessageSquare className="w-8 h-8" />, color: 'text-orange-500 bg-orange-100' }
   ];
 
   return (
@@ -2138,6 +2139,20 @@ export default function App() {
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [currentUser, setCurrentUser] = useState<User | null>(null);
   const [appToast, setAppToast] = useState<string | null>(null);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const integrationStatus = params.get('integration');
+    if (integrationStatus) {
+      if (integrationStatus === 'success') {
+        setTimeout(() => window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Account successfully connected!' })), 500);
+        setView('integrations');
+      } else if (integrationStatus === 'error') {
+        setTimeout(() => window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Failed to connect account.' })), 500);
+      }
+      window.history.replaceState({}, '', '/');
+    }
+  }, []);
 
   useEffect(() => {
     const handler = (e: any) => {

@@ -3,12 +3,13 @@ const express = require('express');
 const mongoose = require('mongoose');
 const cors = require('cors');
 
-const authRoutes = require('./routes/auth');
+const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboard');
 const postRoutes = require('./routes/posts');
 const schedulerRoutes = require('./routes/scheduler');
 const analyticsRoutes = require('./routes/analytics');
 const integrationRoutes = require('./routes/integrations');
+const authIntegrationsRoutes = require('./routes/authIntegrations');
 
 const app = express();
 
@@ -23,6 +24,7 @@ mongoose.connect(process.env.MONGO_URI || 'mongodb://localhost:27017/socialops')
   .catch((err) => console.log('MongoDB configuration error: ', err));
 
 app.use('/api/auth', authRoutes);
+app.use('/api/authIntegrations', authIntegrationsRoutes);
 app.use('/api/dashboard', dashboardRoutes);
 app.use('/api/posts', postRoutes);
 app.use('/api/scheduler', schedulerRoutes);
