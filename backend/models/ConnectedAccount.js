@@ -21,6 +21,14 @@ const connectedAccountSchema = new mongoose.Schema({
   refreshToken: {
     type: String
   },
+  connected: {
+    type: Boolean,
+    default: false
+  },
+  followers: {
+    type: Number,
+    default: 0
+  },
   connectedAt: {
     type: Date,
     default: Date.now
