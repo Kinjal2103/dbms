@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { 
+import {
   Search, Bell, Plus, ArrowUp, Sparkles, Heart, MessageCircle, ArrowRight,
   LayoutDashboard, BarChart3, Calendar, LogOut, TrendingUp, MoreHorizontal,
   Mail, Eye, EyeOff, Check, X, Upload, Trash2, Instagram, Twitter, Linkedin,
@@ -20,6 +20,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
+  const [isInsightApplied, setIsInsightApplied] = useState(false);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -64,10 +65,11 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`
         },
-        body: JSON.stringify({ insightId: 'peak-time' })
+        body: JSON.stringify({ insightType: 'peak-time' })
       });
       if (res.ok) {
-        setToast("Insight applied! Posts scheduled for 6 PM.");
+        setIsInsightApplied(true);
+        setToast("✅ Insight applied! Posts optimized for peak engagement time.");
         setTimeout(() => setToast(null), 3000);
       }
     } catch (e) {
@@ -125,7 +127,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
             {error}
           </motion.div>
         )}
-        <motion.header 
+        <motion.header
           initial={{ opacity: 0, y: -20 }}
           animate={{ opacity: 1, y: 0 }}
           className="mb-16 flex flex-col md:flex-row md:items-end justify-between gap-8"
@@ -137,10 +139,10 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
           <div className="flex items-center gap-4">
             <div className="flex -space-x-3 items-center mr-6">
               {[1, 2, 3].map(i => (
-                <img 
+                <img
                   key={i}
-                  alt="Team" 
-                  className="h-9 w-9 rounded-full border-2 border-white object-cover" 
+                  alt="Team"
+                  className="h-9 w-9 rounded-full border-2 border-white object-cover"
                   src={`https://picsum.photos/seed/team${i}/100/100`}
                   referrerPolicy="no-referrer"
                 />
@@ -154,7 +156,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
           </div>
         </motion.header>
 
-        <motion.div 
+        <motion.div
           variants={containerVariants}
           initial="hidden"
           animate="visible"
@@ -175,14 +177,14 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
               </div>
               <div className="w-full h-32 mt-4 relative overflow-hidden">
                 <svg className="w-full h-full" viewBox="0 0 400 120">
-                  <motion.path 
+                  <motion.path
                     initial={{ pathLength: 0 }}
                     animate={{ pathLength: 1 }}
                     transition={{ duration: 2, ease: "easeInOut" }}
-                    d="M0 100 Q 50 20, 100 80 T 200 40 T 300 90 T 400 30" 
-                    fill="none" 
-                    stroke="url(#lineGrad)" 
-                    strokeWidth="4" 
+                    d="M0 100 Q 50 20, 100 80 T 200 40 T 300 90 T 400 30"
+                    fill="none"
+                    stroke="url(#lineGrad)"
+                    strokeWidth="4"
                     strokeLinecap="round"
                     className="opacity-80"
                   />
@@ -192,10 +194,10 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                       <stop offset="100%" stopColor="#a23256" />
                     </linearGradient>
                   </defs>
-                  <motion.circle 
+                  <motion.circle
                     animate={{ scale: [1, 1.5, 1] }}
                     transition={{ repeat: Infinity, duration: 2 }}
-                    cx="400" cy="30" r="6" fill="#a23256" 
+                    cx="400" cy="30" r="6" fill="#a23256"
                   />
                 </svg>
               </div>
@@ -212,21 +214,24 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                 <div className="flex-grow">
                   <div className="flex items-center gap-3 mb-3">
                     <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">Smart Insight</span>
+                    <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">AI Generated</span>
                     <span className="text-on-surface-variant/50 text-[10px] font-bold uppercase tracking-widest">{dashboardStats?.smartInsight?.confidence}% Confidence</span>
                   </div>
                   <p className="text-2xl font-bold leading-tight">
                     {dashboardStats?.smartInsight?.text}
                   </p>
                   <div className="mt-8 w-full h-2 bg-primary/10 rounded-full overflow-hidden">
-                    <motion.div 
+                    <motion.div
                       initial={{ width: 0 }}
                       animate={{ width: `${dashboardStats?.smartInsight?.confidence || 0}%` }}
                       transition={{ duration: 1, delay: 0.5 }}
-                      className="h-full bg-primary rounded-full" 
+                      className="h-full bg-primary rounded-full"
                     />
                   </div>
                 </div>
-                <Button variant="white" className="flex-shrink-0" onClick={handleApplyInsight}>Apply Now</Button>
+                <Button variant="white" className="flex-shrink-0" onClick={handleApplyInsight} disabled={isInsightApplied}>
+                  {isInsightApplied ? 'Applied' : 'Apply Now'}
+                </Button>
               </div>
               <div className="absolute -bottom-10 -right-10 w-48 h-48 bg-primary/5 rounded-full blur-3xl" />
             </Card>
@@ -247,12 +252,12 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                       <span className="text-sm font-bold">{item.percent}%</span>
                     </div>
                     <div className="w-full h-3 bg-surface-container rounded-full overflow-hidden">
-                      <motion.div 
+                      <motion.div
                         initial={{ width: 0 }}
                         whileInView={{ width: `${item.percent}%` }}
                         viewport={{ once: true }}
                         transition={{ duration: 1, ease: "easeOut" }}
-                        className={cn("h-full rounded-full", idx === 0 ? 'bg-primary' : idx === 1 ? 'bg-secondary' : 'bg-tertiary')} 
+                        className={cn("h-full rounded-full", idx === 0 ? 'bg-primary' : idx === 1 ? 'bg-secondary' : 'bg-tertiary')}
                       />
                     </div>
                   </div>
@@ -278,7 +283,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
               </div>
               <div className="grid grid-cols-7 gap-3">
                 {dashboardStats?.activityDensity?.map((val: number, i: number) => (
-                  <motion.div 
+                  <motion.div
                     key={i}
                     whileHover={{ scale: 1.2 }}
                     initial={{ opacity: 0, scale: 0.5 }}
@@ -286,9 +291,9 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                     transition={{ delay: i * 0.02 }}
                     className={cn(
                       "aspect-square rounded-full cursor-pointer",
-                      val >= 0.8 ? "bg-primary" : 
-                      val >= 0.5 ? "bg-primary/60" : 
-                      val >= 0.2 ? "bg-primary/30" : "bg-primary/10"
+                      val >= 0.8 ? "bg-primary" :
+                        val >= 0.5 ? "bg-primary/60" :
+                          val >= 0.2 ? "bg-primary/30" : "bg-primary/10"
                     )}
                   />
                 ))}
@@ -311,7 +316,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                 </div>
                 <div className="mt-10 flex items-end gap-2 h-24">
                   {[20, 35, 25, 95, 30, 15, 20].map((h, i) => (
-                    <motion.div 
+                    <motion.div
                       key={i}
                       initial={{ height: 0 }}
                       whileInView={{ height: `${h}%` }}
@@ -333,11 +338,11 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
           <div className="flex justify-between items-center mb-10">
             <h3 className="text-3xl font-bold">Recent Performance</h3>
             <button className="text-sm font-bold text-primary flex items-center gap-2 group" onClick={() => setView('scheduler')}>
-              View Archive 
+              View Archive
               <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
             </button>
           </div>
-          <motion.div 
+          <motion.div
             variants={containerVariants}
             initial="hidden"
             whileInView="visible"
@@ -354,9 +359,9 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                 <motion.div key={post.id} variants={itemVariants}>
                   <Card className="overflow-hidden group cursor-pointer hover:-translate-y-2 transition-all duration-300">
                     <div className="h-52 relative overflow-hidden">
-                      <img 
-                        alt={post.title} 
-                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" 
+                      <img
+                        alt={post.title}
+                        className="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700"
                         src={post.image || `https://picsum.photos/seed/${post.id}/800/600`}
                         referrerPolicy="no-referrer"
                       />
@@ -387,7 +392,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
         </section>
       </main>
       <Footer />
-      <button 
+      <button
         onClick={openCreateModal}
         className="fixed bottom-8 right-8 w-14 h-14 bg-on-surface text-white rounded-full flex items-center justify-center shadow-2xl hover:scale-110 transition-all z-50"
       >
@@ -395,7 +400,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
       </button>
 
       <AnimatePresence>
-        {toast && <Toast message={toast} onClose={() => setToast(null)} />}
+        {toast && <toast message={toast} onClose={() => setToast(null)} />}
       </AnimatePresence>
     </div>
   );
