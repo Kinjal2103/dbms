@@ -1,29 +1,41 @@
 const Post = require('../models/Post');
 
-exports.getTimeline = async (req, res) => {
+exports.getQueue = async (req, res) => {
   try {
     const posts = await Post.find({
       userId: req.user._id,
-      status: { $in: ['scheduled', 'published'] }
-    }).sort({ scheduledAt: 1, createdAt: 1 });
+      status: 'scheduled'
+    }).sort({ scheduledAt: 1 });
     
-    // Formatting correctly for the UI
-    const mapped = posts.map(p => ({
+    const scheduledPosts = posts.map(p => ({
       id: p._id.toString(),
       title: p.title,
-      type: p.type,
-      platforms: p.platforms || [],
+      platform: p.platforms && p.platforms.length > 0 ? p.platforms[0].toLowerCase() : 'instagram',
       status: p.status,
       scheduledAt: p.scheduledAt || p.createdAt,
       imageUrl: p.imageUrl,
-      hashtags: p.caption ? (p.caption.match(/#[a-z0-9_]+/gi) || []).slice(0, 3) : [] // Extract hashtags or mock
+      hashtags: p.caption ? (p.caption.match(/#[a-z0-9_]+/gi) || []) : []
     }));
     
-    res.json(mapped);
+    const totalScheduled = scheduledPosts.length;
+    const queueHealthScore = Math.min(100, Math.round((totalScheduled / 7) * 100));
+
+    res.json({
+      scheduledPosts,
+      totalScheduled,
+      queueHealthScore
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+const getTimeAgo = (date) => {
+  const seconds = Math.floor((new Date() - new Date(date)) / 1000);
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ago`;
+  if (seconds < 86400) return `${Math.floor(seconds / 3600)}h ago`;
+  return `${Math.floor(seconds / 86400)}d ago`;
 };
 
 exports.getDrafts = async (req, res) => {
@@ -31,37 +43,78 @@ exports.getDrafts = async (req, res) => {
     const drafts = await Post.find({
       userId: req.user._id,
       status: 'draft'
-    }).sort({ createdAt: -1 }).limit(5);
+    }).sort({ createdAt: -1 });
 
     const mapped = drafts.map(d => ({
       id: d._id.toString(),
       title: d.title,
-      createdAt: d.createdAt.toISOString()
+      createdAt: d.createdAt.toISOString(),
+      timeAgo: getTimeAgo(d.createdAt)
     }));
 
-    res.json(mapped);
+    res.json({
+      drafts: mapped,
+      totalDrafts: mapped.length
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-exports.getHealth = async (req, res) => {
+exports.getTrending = async (req, res) => {
   try {
-    const scheduledCount = await Post.countDocuments({
+    const trendingPost = await Post.findOne({
       userId: req.user._id,
-      status: 'scheduled'
-    });
+      status: 'published'
+    }).sort({ likes: -1 });
     
+    if (!trendingPost) {
+      return res.json({ trendingPost: null });
+    }
+
     res.json({
-      scheduledCount,
-      optimisationScore: 85,
-      trendingAlert: {
-        active: true,
-        platform: 'Twitter',
-        message: 'Your latest thread is gaining traction!'
+      trendingPost: {
+        title: trendingPost.title,
+        platform: trendingPost.platforms && trendingPost.platforms.length > 0 ? trendingPost.platforms[0].toLowerCase() : 'instagram',
+        likes: trendingPost.likes
       }
     });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.deletePost = async (req, res) => {
+  try {
+    const post = await Post.findOne({ _id: req.params.id, userId: req.user._id });
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+    await Post.deleteOne({ _id: req.params.id });
+    res.json({ success: true });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.reschedulePost = async (req, res) => {
+  try {
+    const { scheduledAt } = req.body;
+    const post = await Post.findOne({ _id: req.params.id, userId: req.user._id });
+    
+    if (!post) {
+      return res.status(404).json({ message: 'Post not found' });
+    }
+
+    if (scheduledAt) {
+      post.scheduledAt = scheduledAt;
+      await post.save();
+    }
+    
+    res.json(post);
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

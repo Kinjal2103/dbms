@@ -1,11 +1,13 @@
 const express = require('express');
-const { getTimeline, getDrafts, getHealth } = require('../controllers/schedulerController');
+const { getQueue, getDrafts, getTrending, deletePost, reschedulePost } = require('../controllers/schedulerController');
 const { protect } = require('../middleware/authMiddleware');
 
 const router = express.Router();
 
-router.get('/timeline', protect, getTimeline);
+router.get('/queue', protect, getQueue);
 router.get('/drafts', protect, getDrafts);
-router.get('/health', protect, getHealth);
+router.get('/trending', protect, getTrending);
+router.delete('/posts/:id', protect, deletePost);
+router.patch('/posts/:id/reschedule', protect, reschedulePost);
 
 module.exports = router;
