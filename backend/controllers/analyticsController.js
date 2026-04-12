@@ -1,4 +1,3 @@
-// ADDED
 const AnalyticsData = require('../models/AnalyticsData');
 
 exports.getOverview = async (req, res) => {
@@ -54,7 +53,6 @@ exports.getOverview = async (req, res) => {
   }
 };
 
-// ADDED
 exports.getGrowth = async (req, res) => {
   try {
     const data = await AnalyticsData.findOne({ userId: req.user.id });
@@ -76,40 +74,80 @@ exports.getGrowth = async (req, res) => {
   }
 };
 
-// ADDED
+const getFallbackData = () => ({
+  kpis: {
+    followers: "1.24M", followersChange: "+12%",
+    impressions: "24.5M", impressionsChange: "+42%",
+    engagementRate: "4.82%", engagementChange: "-2%",
+    postFrequency: "12.4", frequencyChange: "+8%"
+  },
+  growthChart: {
+    engagement: [2400, 3100, 2800, 4200],
+    reach: [18000, 21000, 19500, 24500],
+    conversions: [320, 410, 390, 520]
+  },
+  networkDistribution: [
+    { platform: "Instagram", percent: 42 },
+    { platform: "TikTok", percent: 28 },
+    { platform: "LinkedIn", percent: 18 }
+  ],
+  audienceDNA: {
+    primaryAge: "18-24",
+    regions: [
+      { label: "United States", percent: 42 },
+      { label: "United Kingdom", percent: 15 },
+      { label: "Brazil", percent: 12 },
+      { label: "India", percent: 10 }
+    ]
+  }
+});
+
 exports.getFull = async (req, res) => {
   try {
     const data = await AnalyticsData.findOne({ userId: req.user.id });
     if (data) {
-      return res.json(data);
+      return res.json({
+        kpis: data.kpis,
+        growthChart: data.growthChart,
+        networkDistribution: data.networkDistribution,
+        audienceDNA: data.audienceDNA
+      });
     }
-    res.json({
-      kpis: {
-        followers: "1.24M", followersChange: "+12%",
-        impressions: "24.5M", impressionsChange: "+42%",
-        engagementRate: "4.82%", engagementChange: "-2%",
-        postFrequency: "12.4", frequencyChange: "+8%"
-      },
-      growthChart: {
-        engagement: [2400, 3100, 2800, 4200],
-        reach: [18000, 21000, 19500, 24500],
-        conversions: [320, 410, 390, 520]
-      },
-      networkDistribution: [
-        { platform: "Instagram", percent: 42 },
-        { platform: "TikTok", percent: 28 },
-        { platform: "LinkedIn", percent: 18 }
-      ],
-      audienceDNA: {
-        primaryAge: "18-24",
-        regions: [
-          { label: "United States", percent: 42 },
-          { label: "United Kingdom", percent: 15 },
-          { label: "Brazil", percent: 12 },
-          { label: "India", percent: 10 }
-        ]
-      }
-    });
+    res.json(getFallbackData());
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.exportReport = async (req, res) => {
+  try {
+    const { format } = req.body;
+    let data = await AnalyticsData.findOne({ userId: req.user.id });
+    if (!data) {
+      data = getFallbackData();
+    } else {
+        data = {
+            kpis: data.kpis,
+            growthChart: data.growthChart,
+            networkDistribution: data.networkDistribution,
+            audienceDNA: data.audienceDNA
+        };
+    }
+
+    res.setHeader('Content-Disposition', 'attachment; filename="socialops-analytics.json"');
+    res.setHeader('Content-Type', 'application/json');
+    res.send(JSON.stringify(data, null, 2));
+
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ message: 'Server error' });
+  }
+};
+
+exports.shareReport = async (req, res) => {
+  try {
+    res.json({ success: true, shareUrl: "https://socialops.app/report/demo-report-123" });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
