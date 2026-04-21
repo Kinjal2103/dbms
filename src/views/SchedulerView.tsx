@@ -10,6 +10,7 @@ import type { View, User } from '../types';
 import { BASE_URL, getToken, removeToken } from '../constants';
 import { Navbar } from '../components/Navbar';
 import { Footer } from '../components/Footer';
+import { useSocket } from '../hooks/useSocket';
 
 const getImageUrl = (url: string) => {
   if (!url) return 'placeholder-image-url-here';
@@ -27,6 +28,26 @@ const SchedulerView = ({ setView, user, onLogout, openCreateModal }: { setView: 
   const [activeView, setActiveView] = useState<'weekly' | 'monthly'>('weekly');
   const [isLoading, setIsLoading] = useState(true);
   const [openMenuId, setOpenMenuId] = useState<string | null>(null);
+
+  const socket = useSocket(user?.id);
+
+  useEffect(() => {
+    if (!socket) return;
+    
+    const handlePostPublished = ({ postId, platform, publishedAt }: any) => {
+      setScheduledPosts(prev => prev.map(p => 
+        p.id === postId ? { ...p, status: 'published', scheduledAt: publishedAt } : p
+      ));
+      window.dispatchEvent(new CustomEvent('app-toast', { 
+        detail: `Your ${platform} post was published successfully` 
+      }));
+    };
+
+    socket.on('post:published', handlePostPublished);
+    return () => {
+      socket.off('post:published', handlePostPublished);
+    };
+  }, [socket]);
 
   useEffect(() => {
     const fetchSchedulerData = async () => {
@@ -90,8 +111,43 @@ const SchedulerView = ({ setView, user, onLogout, openCreateModal }: { setView: 
     }
   };
 
-  const handleReschedule = (postId: string) => {
-    window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Reschedule feature coming soon!' }));
+  const handleReschedule = async (postId: string) => {
+    const post = scheduledPosts.find(p => p.id === postId);
+    if (!post) return;
+    
+    const currDate = new Date(post.scheduledAt);
+    const currStr = `${currDate.getFullYear()}-${String(currDate.getMonth() + 1).padStart(2,'0')}-${String(currDate.getDate()).padStart(2,'0')} ${String(currDate.getHours()).padStart(2,'0')}:${String(currDate.getMinutes()).padStart(2,'0')}`;
+
+    const newTime = window.prompt('Enter new scheduled time (YYYY-MM-DD HH:MM):', currStr);
+    if (!newTime) return;
+
+    const parsedDate = new Date(newTime);
+    if (isNaN(parsedDate.getTime())) {
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Invalid date format!' }));
+      return;
+    }
+
+    try {
+      const token = getToken();
+      const res = await fetch(`${BASE_URL}/scheduler/posts/${postId}/reschedule`, {
+        method: 'PUT',
+        headers: { 
+          Authorization: `Bearer ${token}`,
+          'Content-Type': 'application/json' 
+        },
+        body: JSON.stringify({ scheduledAt: parsedDate.toISOString() })
+      });
+
+      if (res.ok) {
+        setScheduledPosts(prev => prev.map(p => p.id === postId ? { ...p, scheduledAt: parsedDate.toISOString() } : p).sort((a,b) => new Date(a.scheduledAt).getTime() - new Date(b.scheduledAt).getTime()));
+        window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Post rescheduled successfully!' }));
+      } else {
+        throw new Error('Failed to reschedule');
+      }
+    } catch (err) {
+      console.error(err);
+      window.dispatchEvent(new CustomEvent('app-toast', { detail: 'Error rescheduling post' }));
+    }
   };
 
   const getPlatformIcon = (platform: string) => {

@@ -4,6 +4,7 @@ import {
   Search, Bell, Plus, ArrowUp, Sparkles, Heart, MessageCircle, ArrowRight,
   LayoutDashboard, BarChart3, Calendar, LogOut, TrendingUp, MoreHorizontal,
   Mail, Eye, EyeOff, Check, X, Upload, Trash2, Instagram, Twitter, Linkedin,
+  AlertTriangle,
   Clock, ChevronDown, Phone, Video, FileText, MousePointerClick, PlusCircle,
   MessageSquare, Plug, Loader2, Send, Smartphone, Laptop
 } from 'lucide-react';
@@ -37,6 +38,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
   const [error, setError] = useState<string | null>(null);
   const [toast, setToast] = useState<string | null>(null);
   const [isInsightApplied, setIsInsightApplied] = useState(false);
+  const [isRefreshingInsight, setIsRefreshingInsight] = useState(false); // UPDATED: added matching state
 
   useEffect(() => {
     const fetchDashboard = async () => {
@@ -47,24 +49,22 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
           onLogout();
           return;
         }
-        const [statsRes, postsRes] = await Promise.all([
+        const [statsRes] = await Promise.all([
           fetch(`${BASE_URL}/dashboard/stats`, {
             headers: { Authorization: `Bearer ${token}` }
-          }),
-          fetch(`${BASE_URL}/posts/recent`, {
-            headers: { Authorization: `Bearer ${token}` }
           })
+          // UPDATED: Removed /posts/recent fetch as recentPosts is now in GET /dashboard/stats computed payload
         ]);
-        if (statsRes.status === 401 || postsRes.status === 401) {
+        if (statsRes.status === 401) {
           removeToken();
           setView('login');
           return;
         }
-        if (!statsRes.ok || !postsRes.ok) throw new Error('Failed to fetch data');
+        if (!statsRes.ok) throw new Error('Failed to fetch data');
         const statsData = await statsRes.json();
-        const postsData = await postsRes.json();
         setDashboardStats(statsData);
-        setRecentPosts(postsData);
+        // UPDATED: populate recentPosts from computed section
+        setRecentPosts(statsData.computed?.recentPosts || []);
       } catch (err) {
         console.error('Dashboard fetch error:', err);
         setError('Failed to load dashboard data. Please make sure the backend server was restarted.');
@@ -93,6 +93,37 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
       }
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  // UPDATED: New refresh insight handler
+  const handleRefreshInsight = async () => {
+    try {
+      setIsRefreshingInsight(true);
+      const token = getToken();
+      const res = await fetch(`${BASE_URL}/dashboard/refresh-insights`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      if (res.ok) {
+        const data = await res.json();
+        setDashboardStats((prev: any) => ({
+          ...prev,
+          ai: {
+            ...prev.ai,
+            insight: data.insight,
+            generatedAt: new Date().toISOString(),
+            isStale: false
+          },
+          anomaly: data.anomaly || prev.anomaly
+        }));
+        setToast("✅ AI insights refreshed!");
+        setTimeout(() => setToast(null), 3000);
+      }
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setIsRefreshingInsight(false);
     }
   };
 
@@ -163,12 +194,14 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                 <div>
                   <span className="text-on-surface-variant/50 font-bold text-[10px] uppercase tracking-widest">Total Followers</span>
                   <h2 className="text-5xl font-extrabold mt-3 tracking-tighter">
-                    {isLoading ? <div className="h-8 w-32 bg-surface-container animate-pulse rounded-lg" /> : dashboardStats?.followers?.total?.toLocaleString()}
+                    {/* UPDATED: mapped to dashboardStats.cached.totalFollowers */}
+                    {isLoading ? <div className="h-8 w-32 bg-surface-container animate-pulse rounded-lg" /> : dashboardStats?.cached?.totalFollowers?.toLocaleString()}
                   </h2>
                 </div>
                 <div className="flex items-center gap-1 bg-teal-50 text-teal-600 px-3 py-1 rounded-full text-[10px] font-bold">
                   <ArrowUp className="w-3 h-3" />
-                  {isLoading ? '-' : `${dashboardStats?.followers?.growthPercent}%`}
+                  {/* UPDATED: mapped to dashboardStats.cached.followersGrowth */}
+                  {isLoading ? '-' : `${dashboardStats?.cached?.followersGrowth}%`}
                 </div>
               </div>
               <div className="w-full h-32 mt-4 relative overflow-hidden">
@@ -211,20 +244,21 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                   <div className="flex items-center gap-3 mb-3">
                     <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">Smart Insight</span>
                     <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">AI Generated</span>
-                    <span className="text-on-surface-variant/50 text-[10px] font-bold uppercase tracking-widest">
-                      {isLoading ? '-' : dashboardStats?.smartInsight?.confidence}% Confidence
+                    <span className="text-on-surface-variant/50 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
+                       {/* UPDATED: added Refresh button inside Insight header */}
+                       <button onClick={handleRefreshInsight} disabled={isRefreshingInsight} className="hover:text-primary transition-colors flex items-center gap-1">
+                         {isRefreshingInsight ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3" />}
+                         Refresh
+                       </button>
                     </span>
                   </div>
                   <div className="text-2xl font-bold leading-tight">
-                    {isLoading ? <div className="h-4 w-48 bg-surface-container animate-pulse rounded-lg" /> : dashboardStats?.smartInsight?.text}
+                    {/* UPDATED: mapped to dashboardStats.ai.insight */}
+                    {isLoading ? <div className="h-4 w-48 bg-surface-container animate-pulse rounded-lg" /> : dashboardStats?.ai?.insight}
                   </div>
-                  <div className="mt-8 w-full h-2 bg-primary/10 rounded-full overflow-hidden">
-                    <motion.div
-                      initial={{ width: 0 }}
-                      animate={{ width: `${dashboardStats?.smartInsight?.confidence || 0}%` }}
-                      transition={{ duration: 1, delay: 0.5 }}
-                      className="h-full bg-primary rounded-full"
-                    />
+                  <div className="mt-8 w-full flex items-center justify-between text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-widest">
+                    <span>Generated: {dashboardStats?.ai?.generatedAt ? new Date(dashboardStats.ai.generatedAt).toLocaleString() : 'N/A'}</span>
+                    {dashboardStats?.ai?.isStale && <span className="text-amber-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Stale Data</span>}
                   </div>
                 </div>
                 <Button variant="white" className="flex-shrink-0" onClick={handleApplyInsight} disabled={isInsightApplied}>

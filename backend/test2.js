@@ -1,4 +1,4 @@
-const AnalyticsData = require('../models/AnalyticsData');
+const mongoose = require('mongoose');
 
 const formatHistory = (historyArray, valueKey) => {
   if (!historyArray || historyArray.length === 0) {
@@ -27,7 +27,6 @@ const getFallbackData = () => ({
   topPosts: [],
   audienceRegions: [],
   weeklyKpis: { impressions: 0, clicks: 0, shares: 0, comments: 0 },
-  // Frontend legacy compatibility fields
   kpis: { followers: 0, followersChange: "+0%", impressions: 0, impressionsChange: "+0%", engagementRate: "0%", engagementChange: "0%", postFrequency: 0, frequencyChange: "+0%" },
   growthChart: { engagement: [], reach: [], conversions: [] },
   networkDistribution: [],
@@ -69,64 +68,9 @@ const mapToLegacyPayload = (data) => {
   return payload;
 };
 
-exports.getOverview = async (req, res) => {
-  try {
-    const data = await AnalyticsData.findOne({ userId: req.user.id });
-    res.json(mapToLegacyPayload(data));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-exports.getGrowth = async (req, res) => {
-  try {
-    const data = await AnalyticsData.findOne({ userId: req.user.id });
-    if (!data) {
-      return res.json({ labels: [], engagement: [], reach: [], conversions: [] });
-    }
-    const payload = mapToLegacyPayload(data);
-    res.json({
-      labels: payload.engagementHistory.labels,
-      engagement: payload.growthChart.engagement,
-      reach: payload.growthChart.reach,
-      conversions: payload.growthChart.conversions
-    });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-exports.getFull = async (req, res) => {
-  try {
-    const data = await AnalyticsData.findOne({ userId: req.user.id });
-    res.json(mapToLegacyPayload(data));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-exports.exportReport = async (req, res) => {
-  try {
-    const data = await AnalyticsData.findOne({ userId: req.user.id });
-    const payload = mapToLegacyPayload(data);
-
-    res.setHeader('Content-Disposition', 'attachment; filename="socialops-analytics.json"');
-    res.setHeader('Content-Type', 'application/json');
-    res.send(JSON.stringify(payload, null, 2));
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
-
-exports.shareReport = async (req, res) => {
-  try {
-    res.json({ success: true, shareUrl: "https://socialops.app/report/demo-report-123" });
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
+require('mongoose').connect('mongodb://localhost:27017/socialops').then(async () => { 
+  const AnalyticsData = require('./models/AnalyticsData'); 
+  const data = await AnalyticsData.findOne(); 
+  console.log(JSON.stringify(mapToLegacyPayload(data), null, 2)); 
+  process.exit(0); 
+});

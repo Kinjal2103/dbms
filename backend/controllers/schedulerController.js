@@ -1,4 +1,6 @@
 const Post = require('../models/Post');
+const cron = require('node-cron');
+const { logActivity } = require('../services/activityService');
 
 exports.getQueue = async (req, res) => {
   try {
@@ -119,4 +121,41 @@ exports.reschedulePost = async (req, res) => {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
   }
+};
+
+exports.startScheduler = (io) => {
+  cron.schedule('* * * * *', async () => {
+    try {
+      const duePosts = await Post.find({ 
+        status: 'scheduled', 
+        scheduledAt: { $lte: new Date() } 
+      });
+
+      if (duePosts.length === 0) return;
+
+      for (const post of duePosts) {
+        try {
+          post.status = 'published';
+          post.publishedAt = new Date();
+          await post.save();
+
+          await logActivity(post.userId, 'post.published', { 
+            platform: post.platform, 
+            postId: post._id, 
+            auto: true 
+          });
+
+          io.to(post.userId.toString()).emit('post:published', { 
+            postId: post._id.toString(), 
+            platform: post.platform, 
+            publishedAt: post.publishedAt 
+          });
+        } catch (postError) {
+          console.error(`Failed to publish scheduled post ${post._id}:`, postError);
+        }
+      }
+    } catch (cronError) {
+      console.error('Error ticking scheduler cron job:', cronError);
+    }
+  });
 };

@@ -1,6 +1,7 @@
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
+const { bootstrapNewUser } = require('../services/bootstrapService');
 
 const generateToken = (id) => {
   return jwt.sign({ id }, process.env.JWT_SECRET, {
@@ -42,6 +43,8 @@ const registerUser = async (req, res) => {
     });
 
     if (user) {
+      bootstrapNewUser(user._id);
+      
       res.status(201).json({
         user: {
           id: user._id,

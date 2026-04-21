@@ -6,7 +6,8 @@ export const generateInsight = async (engagementData) => {
 
   const fallback = {
     text: "Your engagement spikes at 6 PM — schedule more posts here.",
-    confidence: 98
+    confidence: 98,
+    anomaly: { title: "Unexpected Engagement Dip", description: "Your weekend posts are seeing 30% less engagement. Consider scheduling for weekdays." }
   };
 
   try {
@@ -15,9 +16,9 @@ export const generateInsight = async (engagementData) => {
     });
 
     const prompt = `You are a social media analytics AI for a platform called SocialOps.
-Based on the following engagement data, generate ONE actionable insight
-for the user. Keep it under 20 words. Be specific and data-driven.
-Sound confident and professional. Do not use bullet points or lists.
+Based on the following engagement data, generate ONE actionable insight for the user (keep it under 20 words).
+AND ALSO detect ONE anomaly from this data (give it a short title and a 20 word description).
+Be specific and data-driven. Sound confident and professional.
 
 Data:
 - Weekly engagement trend: ${JSON.stringify(engagementData.weeklyEngagement)}
@@ -28,7 +29,7 @@ Data:
 - Top audience country: ${engagementData.audienceTopCountry}
 
 Respond with ONLY JSON:
-{"insight":"...", "confidence":95}`;
+{"insight":"...", "confidence":95, "anomaly": {"title": "...", "description": "..."}}`;
 
     const result = await model.generateContent(prompt);
     const text = result.response.text();
@@ -38,7 +39,8 @@ Respond with ONLY JSON:
 
     return {
       text: parsed.insight,
-      confidence: parsed.confidence
+      confidence: parsed.confidence,
+      anomaly: parsed.anomaly
     };
 
   } catch (error) {
