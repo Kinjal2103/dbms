@@ -20,7 +20,7 @@ import { useSocket } from '../hooks/useSocket';
 const getImageUrl = (url: string, seed: string) => {
   if (!url) return `https://picsum.photos/seed/${seed}/800/600`;
   if (url.startsWith('http')) return url;
-  const serverUrl = BASE_URL.replace('/api', ''); 
+  const serverUrl = BASE_URL.replace('/api', '');
   return `${serverUrl}${url.startsWith('/') ? '' : '/'}${url}`;
 };
 
@@ -98,11 +98,11 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
   // UPDATED: New refresh insight handler
   useEffect(() => {
     if (!socket) return;
-    
+
     const handleLiveEngagement = (payload: any) => {
       setDashboardStats(prev => {
         if (!prev || !prev.computed || !prev.computed.recentPosts) return prev;
-        
+
         const updatedPosts = prev.computed.recentPosts.map((post: any) => {
           if (post._id === payload.postId) {
             return { ...post, likes: payload.likes, comments: payload.comments };
@@ -276,11 +276,11 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                     <span className="bg-primary text-white text-[10px] font-bold px-2 py-0.5 rounded uppercase tracking-widest">Smart Insight</span>
                     <span className="bg-primary/10 text-primary text-[10px] font-bold px-2 py-0.5 rounded-full uppercase tracking-widest">AI Generated</span>
                     <span className="text-on-surface-variant/50 text-[10px] font-bold uppercase tracking-widest flex items-center gap-2">
-                       {/* UPDATED: added Refresh button inside Insight header */}
-                       <button onClick={handleRefreshInsight} disabled={isRefreshingInsight} className="hover:text-primary transition-colors flex items-center gap-1">
-                         {isRefreshingInsight ? <Loader2 className="w-3 h-3 animate-spin"/> : <Sparkles className="w-3 h-3" />}
-                         Refresh
-                       </button>
+                      {/* UPDATED: added Refresh button inside Insight header */}
+                      <button onClick={handleRefreshInsight} disabled={isRefreshingInsight} className="hover:text-primary transition-colors flex items-center gap-1">
+                        {isRefreshingInsight ? <Loader2 className="w-3 h-3 animate-spin" /> : <Sparkles className="w-3 h-3" />}
+                        Refresh
+                      </button>
                     </span>
                   </div>
                   <div className="text-2xl font-bold leading-tight">
@@ -289,7 +289,7 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                   </div>
                   <div className="mt-8 w-full flex items-center justify-between text-[10px] text-on-surface-variant/50 uppercase font-bold tracking-widest">
                     <span>Generated: {dashboardStats?.ai?.generatedAt ? new Date(dashboardStats.ai.generatedAt).toLocaleString() : 'N/A'}</span>
-                    {dashboardStats?.ai?.isStale && <span className="text-amber-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3"/> Stale Data</span>}
+                    {dashboardStats?.ai?.isStale && <span className="text-amber-500 flex items-center gap-1"><AlertTriangle className="w-3 h-3" /> Stale Data</span>}
                   </div>
                 </div>
                 <Button variant="white" className="flex-shrink-0" onClick={handleApplyInsight} disabled={isInsightApplied}>
@@ -362,8 +362,8 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                   Array.from({ length: 28 }).map((_, i) => {
                     const density = dashboardStats?.activityDensity?.[i] || 0;
                     const colorClass = density >= 0.8 ? 'bg-primary' :
-                                       density >= 0.5 ? 'bg-primary/60' :
-                                       density >= 0.2 ? 'bg-primary/30' : 'bg-primary/10';
+                      density >= 0.5 ? 'bg-primary/60' :
+                        density >= 0.2 ? 'bg-primary/30' : 'bg-primary/10';
                     return (
                       <motion.div
                         key={i}
@@ -395,9 +395,9 @@ const DashboardView = ({ setView, user, onLogout, openCreateModal }: { setView: 
                   </div>
                   {isLoading ? (
                     <div className="space-y-3">
-                       <div className="h-6 w-full bg-white/20 animate-pulse rounded-lg" />
-                       <div className="h-4 w-3/4 bg-white/20 animate-pulse rounded-lg mt-3" />
-                       <div className="h-4 w-1/2 bg-white/20 animate-pulse rounded-lg" />
+                      <div className="h-6 w-full bg-white/20 animate-pulse rounded-lg" />
+                      <div className="h-4 w-3/4 bg-white/20 animate-pulse rounded-lg mt-3" />
+                      <div className="h-4 w-1/2 bg-white/20 animate-pulse rounded-lg" />
                     </div>
                   ) : (
                     <>
