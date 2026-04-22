@@ -226,18 +226,18 @@ const CreatePostModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
           <div className="w-full lg:w-[65%] overflow-y-auto no-scrollbar p-8 space-y-10">
             <motion.section custom={0} variants={formVariants} initial="hidden" animate="visible" className="space-y-6">
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 ml-1">Post Title</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-black/60 ml-1">Post Title</label>
                 <Input 
                   placeholder="Summer Campaign Reveal..." 
-                  className="bg-surface-container/50 border-none" 
+                  className="bg-surface-container/50 border-none text-black placeholder:text-black/30" 
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
                 />
               </div>
               <div className="space-y-2">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 ml-1">Caption</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-black/60 ml-1">Caption</label>
                 <textarea 
-                  className="w-full bg-surface-container/50 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/40 transition-all font-sans text-on-surface placeholder:text-on-surface-variant/30 resize-none h-32" 
+                  className="w-full bg-surface-container/50 border-none rounded-xl px-4 py-3 focus:ring-2 focus:ring-primary/40 transition-all font-sans text-black placeholder:text-black/30 resize-none h-32" 
                   placeholder="Write your story here..."
                   value={caption}
                   onChange={(e) => setCaption(e.target.value)}
@@ -246,7 +246,7 @@ const CreatePostModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
             </motion.section>
 
             <motion.section custom={1} variants={formVariants} initial="hidden" animate="visible" className="space-y-4">
-              <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 ml-1">Media Gallery</label>
+              <label className="text-[10px] font-bold uppercase tracking-widest text-black/60 ml-1">Media Gallery</label>
               <div className="grid grid-cols-4 gap-4">
                 <div 
                   className="col-span-2 relative aspect-square rounded-2xl border-2 border-dashed border-outline-variant/20 bg-surface-container/30 flex flex-col items-center justify-center cursor-pointer hover:border-primary/50 hover:bg-primary/5 transition-all group overflow-hidden"
@@ -286,7 +286,7 @@ const CreatePostModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
 
             <motion.div custom={2} variants={formVariants} initial="hidden" animate="visible" className="grid grid-cols-1 md:grid-cols-2 gap-8">
               <section className="space-y-4">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 ml-1">Platforms</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-black/60 ml-1">Platforms</label>
                 
                 {connectedPlatforms.length === 0 ? (
                   <div className="p-4 bg-yellow-50 text-yellow-800 rounded-xl text-[10px] font-bold uppercase tracking-widest border border-yellow-200">
@@ -309,7 +309,7 @@ const CreatePostModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
                 )}
               </section>
               <section className="space-y-4">
-                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 ml-1">Content Type</label>
+                <label className="text-[10px] font-bold uppercase tracking-widest text-black/60 ml-1">Content Type</label>
                 <div className="flex bg-surface-container rounded-full p-1 w-fit">
                   {['Post', 'Reel', 'Story'].map(type => (
                     <button 
@@ -327,11 +327,11 @@ const CreatePostModal = ({ isOpen, onClose, user }: { isOpen: boolean, onClose: 
               </section>
             </motion.div>
 
-            <motion.section custom={3} variants={formVariants} initial="hidden" animate="visible" className="bg-surface-container/30 p-6 rounded-2xl space-y-6">
+            <motion.section custom={3} variants={formVariants} initial="hidden" animate="visible" className="bg-surface-container/80 shadow-sm p-6 rounded-2xl space-y-6 text-black">
               <div className="flex items-center justify-between">
                 <div>
-                  <h4 className="font-bold text-on-surface">Schedule Posting</h4>
-                  <p className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 mt-1">Optimize reach by selecting peak engagement times.</p>
+                  <h4 className="font-bold text-black">Schedule Posting</h4>
+                  <p className="text-[10px] font-bold uppercase tracking-widest text-black/60 mt-1">Optimize reach by selecting peak engagement times.</p>
                 </div>
                 <div 
                   className="relative inline-flex items-center cursor-pointer"

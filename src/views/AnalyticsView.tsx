@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'motion/react';
+import { motion, AnimatePresence } from 'motion/react';
+import { X, Twitter, Linkedin, MessageCircle, Instagram } from 'lucide-react';
 import { Card, Button } from '../components/ui-base';
 import { cn } from '../lib/utils';
 import type { View, User } from '../types';
@@ -16,6 +17,8 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
   const [connectedPlatforms, setConnectedPlatforms] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [isShareModalOpen, setIsShareModalOpen] = useState(false);
+  const [shareUrl, setShareUrl] = useState('');
   const socket = useSocket(user?.id);
 
   const fetchAnalytics = async () => {
@@ -155,8 +158,8 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
       });
       const data = await res.json();
       if (data.success && data.shareUrl) {
-        await navigator.clipboard.writeText(data.shareUrl);
-        window.dispatchEvent(new CustomEvent('app-toast', { detail: '🔗 Report link copied to clipboard!' }));
+        setShareUrl(data.shareUrl);
+        setIsShareModalOpen(true);
       }
     } catch (err) {
       console.error('Failed to share', err);
@@ -459,6 +462,71 @@ const AnalyticsView = ({ setView, user, onLogout }: { setView: (v: View) => void
         )}
       </main>
       <Footer />
+      <AnimatePresence>
+        {isShareModalOpen && (
+          <motion.div 
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] flex items-center justify-center bg-on-background/20 backdrop-blur-sm p-4"
+            onClick={() => setIsShareModalOpen(false)}
+          >
+            <motion.div 
+              initial={{ scale: 0.95, opacity: 0, y: 20 }}
+              animate={{ scale: 1, opacity: 1, y: 0 }}
+              exit={{ scale: 0.95, opacity: 0, y: 20 }}
+              className="bg-surface-container-lowest w-full max-w-md rounded-2xl shadow-2xl p-6"
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className="flex justify-between items-center mb-6">
+                <h3 className="text-xl font-bold">Share Report</h3>
+                <button onClick={() => setIsShareModalOpen(false)} className="p-2 hover:bg-surface-container rounded-full transition-colors">
+                  <X className="w-5 h-5 text-on-surface-variant" />
+                </button>
+              </div>
+              <p className="text-sm text-on-surface-variant mb-6">Share this report securely with your team or clients across multiple platforms.</p>
+              
+              <div className="flex justify-between px-4 mb-8">
+                <div className="flex flex-col items-center gap-2">
+                  <button className="w-12 h-12 rounded-full bg-[#E1F5FE] text-[#03A9F4] flex items-center justify-center hover:bg-[#B3E5FC] transition-colors shadow-sm">
+                    <Twitter className="w-5 h-5" />
+                  </button>
+                  <span className="text-[10px] font-bold text-on-surface-variant/70">Twitter</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <button className="w-12 h-12 rounded-full bg-[#E8EAF6] text-[#3F51B5] flex items-center justify-center hover:bg-[#C5CAE9] transition-colors shadow-sm">
+                    <Linkedin className="w-5 h-5" />
+                  </button>
+                  <span className="text-[10px] font-bold text-on-surface-variant/70">LinkedIn</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <button className="w-12 h-12 rounded-full bg-[#E8F5E9] text-[#4CAF50] flex items-center justify-center hover:bg-[#C8E6C9] transition-colors shadow-sm">
+                    <MessageCircle className="w-5 h-5" />
+                  </button>
+                  <span className="text-[10px] font-bold text-on-surface-variant/70">WhatsApp</span>
+                </div>
+                <div className="flex flex-col items-center gap-2">
+                  <button className="w-12 h-12 rounded-full bg-[#FCE4EC] text-[#E91E63] flex items-center justify-center hover:bg-[#F8BBD0] transition-colors shadow-sm">
+                    <Instagram className="w-5 h-5" />
+                  </button>
+                  <span className="text-[10px] font-bold text-on-surface-variant/70">Instagram</span>
+                </div>
+              </div>
+
+              <div className="space-y-2">
+                <label className="text-[10px] font-bold uppercase tracking-widest text-on-surface-variant/50 ml-1">Copy Link</label>
+                <div className="flex bg-surface-container p-1.5 rounded-xl items-center border border-outline-variant/10">
+                  <input type="text" readOnly value={shareUrl} className="bg-transparent border-none focus:ring-0 text-sm flex-1 px-3 py-2 outline-none font-medium text-on-surface" />
+                  <Button onClick={() => {
+                    navigator.clipboard.writeText(shareUrl);
+                    window.dispatchEvent(new CustomEvent('app-toast', { detail: '🔗 Link copied to clipboard!' }));
+                  }} className="px-5 py-2.5 rounded-lg text-xs whitespace-nowrap shadow-sm">Copy Link</Button>
+                </div>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 };
