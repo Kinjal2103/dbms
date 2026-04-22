@@ -149,9 +149,9 @@ const Navbar = ({ currentView, setView, user, onLogout }: { currentView: View, s
                        <div className="p-4 text-center text-on-surface-variant text-sm">No new notifications</div>
                     ) : (
                       notifications.map(n => (
-                        <div key={n.id} className="p-3 bg-surface-container/30 rounded-xl hover:bg-surface-container transition-colors cursor-pointer">
+                        <div key={n.id} className="p-3 bg-surface-container/80 shadow-sm rounded-xl hover:bg-surface-variant transition-colors cursor-pointer text-black">
                           <p className="text-sm font-bold">{n.title}</p>
-                          <p className="text-xs text-on-surface-variant mt-1">{n.message}</p>
+                          <p className="text-xs mt-1 text-black/80">{n.message}</p>
                         </div>
                       ))
                     )}
