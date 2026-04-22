@@ -62,7 +62,13 @@ const IntegrationsView = ({ setView, user, onLogout }: { setView: (v: View) => v
       if (data.success) {
         setIntegrations(prev => prev.map(i =>
           i.platform === selectedPlatform.platform
-            ? { ...i, connected: true, username: connectUsername }
+            ? {
+                ...i,
+                connected: true,
+                username: data.integration?.username || connectUsername,
+                followers: data.integration?.followers || 0,
+                connectedAt: data.integration?.connectedAt || new Date().toISOString()
+              }
             : i
         ));
         setShowConnectModal(false);

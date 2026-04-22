@@ -22,7 +22,9 @@ const getFallbackData = () => ({
   platformStats: {
     instagram: { posts: 0, reach: 0, engagement: 0 },
     twitter: { posts: 0, reach: 0, engagement: 0 },
-    linkedin: { posts: 0, reach: 0, engagement: 0 }
+    linkedin: { posts: 0, reach: 0, engagement: 0 },
+    tiktok: { posts: 0, reach: 0, engagement: 0 },
+    youtube: { posts: 0, reach: 0, engagement: 0 }
   },
   topPosts: [],
   audienceRegions: [],

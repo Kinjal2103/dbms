@@ -8,7 +8,7 @@ const connectedAccountSchema = new mongoose.Schema({
   },
   platform: {
     type: String,
-    enum: ['instagram', 'twitter', 'linkedin', 'tiktok'],
+    enum: ['instagram', 'twitter', 'linkedin', 'tiktok', 'youtube'],
     required: true
   },
   username: {

@@ -1,4 +1,7 @@
 const ConnectedAccount = require('../models/ConnectedAccount');
+const AnalyticsData = require('../models/AnalyticsData');
+const Post = require('../models/Post');
+const { seedIntegrationData } = require('../services/integrationSeedService');
 
 const ALL_PLATFORMS = [
   { id: 'instagram', label: 'Instagram', color: '#E1306C' },
@@ -67,7 +70,20 @@ exports.connectIntegration = async (req, res) => {
       });
     }
 
-    res.json({ success: true, integration: { platform, username, connected: true } });
+    const seedResult = await seedIntegrationData({ userId: req.user._id, platform });
+    acc = await ConnectedAccount.findOne({ userId: req.user._id, platform });
+
+    res.json({
+      success: true,
+      integration: {
+        platform,
+        username,
+        connected: true,
+        followers: acc?.followers || seedResult.followers || 0,
+        connectedAt: acc?.connectedAt || null
+      },
+      seeded: seedResult.seeded || false
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });
@@ -101,14 +117,38 @@ exports.getIntegrationStats = async (req, res) => {
       return res.json({ connected: false });
     }
 
-    let stats = {};
-    if (platform === 'instagram') stats = { posts: 48, avgLikes: 2840, avgComments: 124, bestTime: '6:00 PM' };
-    else if (platform === 'linkedin') stats = { posts: 12, avgLikes: 890, avgComments: 34, bestTime: '9:00 AM' };
-    else if (platform === 'tiktok') stats = { posts: 31, avgLikes: 8400, avgComments: 342, bestTime: '8:00 PM' };
-    else if (platform === 'twitter') stats = { posts: 0, avgLikes: 0, avgComments: 0, bestTime: 'N/A' };
-    else if (platform === 'youtube') stats = { posts: 0, avgLikes: 0, avgComments: 0, bestTime: 'N/A' };
+    const posts = await Post.find({
+      userId: req.user._id,
+      platforms: platform,
+      status: 'published'
+    }).select('likes comments createdAt');
 
-    res.json(stats);
+    const analytics = await AnalyticsData.findOne({ userId: req.user._id });
+    const platformStats = analytics?.platformStats?.[platform];
+    const totalLikes = posts.reduce((sum, post) => sum + (post.likes || 0), 0);
+    const totalComments = posts.reduce((sum, post) => sum + (post.comments || 0), 0);
+
+    const hourBuckets = posts.reduce((accumulator, post) => {
+      const hour = new Date(post.createdAt).getHours();
+      accumulator[hour] = (accumulator[hour] || 0) + 1;
+      return accumulator;
+    }, {});
+
+    const bestHour = Object.entries(hourBuckets).sort((a, b) => b[1] - a[1])[0]?.[0];
+    const bestTime = bestHour !== undefined
+      ? new Date(2000, 0, 1, Number(bestHour)).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        })
+      : 'N/A';
+
+    res.json({
+      posts: platformStats?.posts ?? posts.length,
+      avgLikes: posts.length ? Math.round(totalLikes / posts.length) : 0,
+      avgComments: posts.length ? Math.round(totalComments / posts.length) : 0,
+      bestTime
+    });
   } catch (err) {
     console.error(err);
     res.status(500).json({ message: 'Server error' });

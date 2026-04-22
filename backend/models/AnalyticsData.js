@@ -17,7 +17,9 @@ const analyticsDataSchema = new mongoose.Schema({
   platformStats: {
     instagram: { posts: {type: Number, default: 0}, reach: {type: Number, default: 0}, engagement: {type: Number, default: 0} },
     twitter: { posts: {type: Number, default: 0}, reach: {type: Number, default: 0}, engagement: {type: Number, default: 0} },
-    linkedin: { posts: {type: Number, default: 0}, reach: {type: Number, default: 0}, engagement: {type: Number, default: 0} }
+    linkedin: { posts: {type: Number, default: 0}, reach: {type: Number, default: 0}, engagement: {type: Number, default: 0} },
+    tiktok: { posts: {type: Number, default: 0}, reach: {type: Number, default: 0}, engagement: {type: Number, default: 0} },
+    youtube: { posts: {type: Number, default: 0}, reach: {type: Number, default: 0}, engagement: {type: Number, default: 0} }
   },
   topPosts: [],
   audienceRegions: [{ label: String, percent: Number }],
